@@ -71,4 +71,48 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const getUserById = async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password");
+  res.json({ success: true, data: user });
+};
+
+const updateUser = async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  ).select("-password");
+
+  res.json({ success: true, data: user });
+};
+
+const changePasswordById = async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  const isMatch = await bcrypt.compare(
+    req.body.currentPassword,
+    user.password
+  );
+
+  if (!isMatch) {
+    return res.status(400).json({
+      success: false,
+      message: "Incorrect current password"
+    });
+  }
+
+  const hashedPassword = await bcrypt.hash(req.body.newPassword, 10);
+
+  user.password = hashedPassword;
+  await user.save();
+
+  res.json({ success: true, message: "Password updated" });
+};
+
+module.exports = {
+  register,
+  login,
+  getUserById,
+  updateUser,
+  changePasswordById,
+};
